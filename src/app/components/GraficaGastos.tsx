@@ -40,7 +40,7 @@ export default function GraficaGastos({ transacciones }: GraficaGastosProps) {
               ))}
             </Pie>
             <Tooltip 
-              formatter={(value: number) => [`Q${formatearDinero(value)}`, 'Monto']}
+              formatter={(value: any) => [`Q${formatearDinero(value)}`, 'Monto']}
               contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '12px', color: '#f4f4f5', padding: '10px' }}
               itemStyle={{ color: '#f4f4f5', fontWeight: 'bold' }}
               cursor={{ fill: 'none' }}
