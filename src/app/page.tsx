@@ -14,32 +14,39 @@ export default function Home() {
   const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
   const [filtroMes, setFiltroMes] = useState(new Date().toISOString().substring(0, 7));
 
-  const obtenerDatos = async () => {
-    // 1. OBTENER TODO PARA EL BALANCE REAL (Sin filtros de fecha)
+ const obtenerDatos = async () => {
+    // 1. Balance Global (Todo el pisto acumulado)
     const { data: todos, error: errorGlobal } = await supabase.from('gastos').select('tipo, monto');
     if (!errorGlobal && todos) {
       const total = todos.reduce((acc, t) => t.tipo === 'ingreso' ? acc + parseFloat(t.monto) : acc - parseFloat(t.monto), 0);
       setBalanceGlobal(total);
     }
 
-    // 2. OBTENER SOLO LO DEL MES PARA LA GRÁFICA E HISTORIAL
-    const primerDia = `${filtroMes}-01T00:00:00Z`;
-    const ultimoDia = `${filtroMes}-31T23:59:59Z`;
+    // 2. Filtro de Mes (SOLUCIÓN A PRUEBA DE ZONAS HORARIAS)
+    const [anio, mes] = filtroMes.split('-'); // Ej: "2026", "04"
+    
+    // Truco de JS: pedir el día 0 del mes, nos da automáticamente el último día del mes (28, 30 o 31)
+    const ultimoDia = new Date(parseInt(anio), parseInt(mes), 0).getDate();
+    
+    // Armamos la fecha manualmente como texto exacto
+    const primerDia = `${filtroMes}-01T00:00:00.000Z`;
+    const ultimoDiaTexto = `${filtroMes}-${ultimoDia}T23:59:59.999Z`;
 
-    const { data: mes, error: errorMes } = await supabase
+    const { data: datosMes, error: errorMes } = await supabase
       .from('gastos')
       .select('*')
       .gte('fecha', primerDia)
-      .lte('fecha', ultimoDia)
+      .lte('fecha', ultimoDiaTexto)
       .order('fecha', { ascending: false });
 
-    if (!errorMes && mes) {
-      setTransaccionesMes(mes);
-      const gastos = mes.filter(t => t.tipo === 'gasto').reduce((acc, t) => acc + parseFloat(t.monto), 0);
+    if (!errorMes && datosMes) {
+      setTransaccionesMes(datosMes);
+      const gastos = datosMes.filter(t => t.tipo === 'gasto').reduce((acc, t) => acc + parseFloat(t.monto), 0);
       setTotalGastosMes(gastos);
+    } else {
+      console.error("Error trayendo los datos:", errorMes);
     }
   };
-
   useEffect(() => { obtenerDatos(); }, [filtroMes]);
 
   const mostrarMensaje = (texto: string, tipo: string) => {
